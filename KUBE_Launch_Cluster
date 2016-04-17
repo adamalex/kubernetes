@@ -4,26 +4,30 @@ IFS=$'\n\t'
 
 # ---
 # RightScript Name: KUBE Launch Cluster
-# Description: ""
 # Inputs:
-#   KUBE_CLUSTER:
-#     Category: Application
-#     Description: 'Cluster name for the cluster. Must be unique per account.'
-#     Input Type: single
-#     Required: true
-#     Advanced: false
 #   KUBE_ROLE:
 #     Category: Application
-#     Description: ""
 #     Input Type: single
 #     Required: true
 #     Advanced: false
 #     Possible Values:
 #     - text:master
 #     - text:node
+#   MY_IP:
+#     Category: RightScale
+#     Input Type: single
+#     Required: true
+#     Advanced: true
+#     Default: env:PRIVATE_IP
+#   SERVER_NAME:
+#     Category: RightScale
+#     Input Type: single
+#     Required: true
+#     Advanced: true
+#     Default: env:RS_SERVER_NAME
 #   KUBE_RELEASE_TAG:
 #     Category: Application
-#     Description: "Version tag as found at https://github.com/kubernetes/kubernetes/releases"
+#     Description: Version tag as found at https://github.com/kubernetes/kubernetes/releases
 #     Input Type: single
 #     Required: true
 #     Advanced: false
@@ -31,26 +35,19 @@ IFS=$'\n\t'
 #     - text:v1.3.0-alpha.2
 #   FLANNEL_VERSION:
 #     Category: Application
-#     Description: "Version number as found at https://github.com/coreos/flannel/releases (omit the leading 'v')"
+#     Description: Version number as found at https://github.com/coreos/flannel/releases
+#       (omit the leading 'v')
 #     Input Type: single
 #     Required: true
 #     Advanced: false
 #     Possible Values:
 #     - text:0.5.5
-#   MY_IP:
-#     Category: RightScale
-#     Description: ""
+#   KUBE_CLUSTER:
+#     Category: Application
+#     Description: Cluster name for the cluster. Must be unique per account.
 #     Input Type: single
 #     Required: true
-#     Advanced: true
-#     Default: env:PRIVATE_IP
-#   SERVER_NAME:
-#     Category: RightScale
-#     Description: ""
-#     Input Type: single
-#     Required: true
-#     Advanced: true
-#     Default: env:RS_SERVER_NAME
+#     Advanced: false
 # Attachments: []
 # ...
 

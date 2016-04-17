@@ -1,17 +1,9 @@
 #!/bin/bash
 # ---
 # RightScript Name: KUBE Set Tags
-# Description: ""
 # Inputs:
-#   KUBE_CLUSTER:
-#     Category: Application
-#     Description: Cluster name for the cluster. Must be unique per account.
-#     Input Type: single
-#     Required: true
-#     Advanced: false
 #   KUBE_ROLE:
 #     Category: Application
-#     Description: ""
 #     Input Type: single
 #     Required: true
 #     Advanced: false
@@ -20,14 +12,18 @@
 #     - text:node
 #   MY_IP:
 #     Category: RightScale
-#     Description: ""
 #     Input Type: single
 #     Required: true
 #     Advanced: true
 #     Default: env:PRIVATE_IP
+#   KUBE_CLUSTER:
+#     Category: Application
+#     Description: Cluster name for the cluster. Must be unique per account.
+#     Input Type: single
+#     Required: true
+#     Advanced: false
 #   SERVER_NAME:
 #     Category: RightScale
-#     Description: ""
 #     Input Type: single
 #     Required: true
 #     Advanced: true

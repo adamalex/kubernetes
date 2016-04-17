@@ -5,12 +5,13 @@
 # Description: Check whether a RightLink upgrade is available and perform the upgrade.
 # Inputs:
 #   UPGRADES_FILE_LOCATION:
-#     Input Type: single
 #     Category: RightScale
 #     Description: External location of 'upgrades' file
-#     Default: text:https://rightlink.rightscale.com/rightlink/upgrades
+#     Input Type: single
 #     Required: false
 #     Advanced: true
+#     Default: text:https://rightlink.rightscale.com/rightlink/upgrades
+# Attachments: []
 # ...
 #
 

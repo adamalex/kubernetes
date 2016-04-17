@@ -4,11 +4,9 @@ IFS=$'\n\t'
 
 # ---
 # RightScript Name: KUBE Install Dashboard
-# Description: ""
 # Inputs:
 #   MY_IP:
 #     Category: RightScale
-#     Description: ""
 #     Input Type: single
 #     Required: true
 #     Advanced: true

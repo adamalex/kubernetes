@@ -7,39 +7,40 @@
 #   Both methods work with RightScale TSS (Time Series Storage), a backend system for aggregating and
 #   displaying monitoring data. Using collectd will sent monitoring data to the RightLink process on the localhost
 #   as HTTP using the write_http plugin, which then forwards that data to the TSS servers over HTTPS with authentication.
-#
+# 
 #   ## Known Limitations:
 #   Choosing to use use collectd on very small instance types (less than 1GB memory) may result in a failure
 #   to install "collectd_tcp_network_connect" because of a lack of memory.
 #   This can be worked around by adding a 1GB or larger swap file to your server prior to running this script.
 # Inputs:
 #   MONITORING_METHOD:
-#     Input Type: single
 #     Category: RightScale
-#     Description: |
-#       Determine the method of monitoring to use, either RightLink monitoring or collectd. Setting to
-#       'auto' will use code to select method. 
+#     Description: "Determine the method of monitoring to use, either RightLink monitoring
+#       or collectd. Setting to\n'auto' will use code to select method. \n"
+#     Input Type: single
 #     Required: false
 #     Advanced: true
 #     Default: text:auto
 #     Possible Values:
-#       - text:auto
-#       - text:collectd
-#       - text:rightlink
+#     - text:auto
+#     - text:collectd
+#     - text:rightlink
 #   RS_INSTANCE_UUID:
-#     Input Type: single
 #     Category: RightScale
-#     Default: env:RS_INSTANCE_UUID
 #     Description: If using collectd, the monitoring ID for this server.
-#     Required: false
-#     Advanced: true
-#   COLLECTD_SERVER:
 #     Input Type: single
-#     Category: RightScale
-#     Default: env:RS_TSS
-#     Description: If using collectd, the FQDN or IP address of the remote collectd server.
 #     Required: false
 #     Advanced: true
+#     Default: env:RS_INSTANCE_UUID
+#   COLLECTD_SERVER:
+#     Category: RightScale
+#     Description: If using collectd, the FQDN or IP address of the remote collectd
+#       server.
+#     Input Type: single
+#     Required: false
+#     Advanced: true
+#     Default: env:RS_TSS
+# Attachments: []
 # ...
 #
 

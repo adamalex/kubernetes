@@ -2,19 +2,20 @@
 
 # ---
 # RightScript Name: RL10 Linux Setup Automatic Upgrade
-# Description: Creates a cron job that performs a daily check to see if
-#   an upgrade to RightLink is available and upgrades if there is.
+# Description: Creates a cron job that performs a daily check to see if an upgrade to
+#   RightLink is available and upgrades if there is.
 # Inputs:
 #   ENABLE_AUTO_UPGRADE:
-#     Input Type: single
 #     Category: RightScale
 #     Description: Enables or disables automatic upgrade of RightLink10.
-#     Default: text:true
+#     Input Type: single
 #     Required: false
 #     Advanced: true
+#     Default: text:true
 #     Possible Values:
-#       - text:true
-#       - text:false
+#     - text:true
+#     - text:false
+# Attachments: []
 # ...
 #
 
