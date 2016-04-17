@@ -5,26 +5,6 @@ IFS=$'\n\t'
 # ---
 # RightScript Name: KUBE Launch Cluster
 # Inputs:
-#   KUBE_ROLE:
-#     Category: Application
-#     Input Type: single
-#     Required: true
-#     Advanced: false
-#     Possible Values:
-#     - text:master
-#     - text:node
-#   MY_IP:
-#     Category: RightScale
-#     Input Type: single
-#     Required: true
-#     Advanced: true
-#     Default: env:PRIVATE_IP
-#   SERVER_NAME:
-#     Category: RightScale
-#     Input Type: single
-#     Required: true
-#     Advanced: true
-#     Default: env:RS_SERVER_NAME
 #   KUBE_RELEASE_TAG:
 #     Category: Application
 #     Description: Version tag as found at https://github.com/kubernetes/kubernetes/releases
@@ -48,6 +28,26 @@ IFS=$'\n\t'
 #     Input Type: single
 #     Required: true
 #     Advanced: false
+#   KUBE_ROLE:
+#     Category: Application
+#     Input Type: single
+#     Required: true
+#     Advanced: false
+#     Possible Values:
+#     - text:master
+#     - text:node
+#   MY_IP:
+#     Category: RightScale
+#     Input Type: single
+#     Required: true
+#     Advanced: true
+#     Default: env:PRIVATE_IP
+#   SERVER_NAME:
+#     Category: RightScale
+#     Input Type: single
+#     Required: true
+#     Advanced: true
+#     Default: env:RS_SERVER_NAME
 # Attachments: []
 # ...
 
