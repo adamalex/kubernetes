@@ -48,278 +48,51 @@ IFS=$'\n\t'
 #     Required: true
 #     Advanced: true
 #     Default: env:RS_SERVER_NAME
-# Attachments: []
+# Attachments:
+# - kubernetes.sh
+# - kube-apiserver.manifest.sh
+# - kube-controller-manager.manifest.sh
+# - kube-scheduler.manifest.sh
 # ...
 
-install_docker() {
-  if [[ ! -f /usr/bin/docker ]]; then
-    echo "debconf debconf/frontend select Noninteractive" | sudo debconf-set-selections
-    sudo apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D
-    echo "deb https://apt.dockerproject.org/repo ubuntu-wily main" | sudo tee /etc/apt/sources.list.d/docker.list
-    sudo apt-get -qq update
-    sudo apt-get -qq -y install docker-engine
-  fi
-}
+# shellcheck source=attachments/kubernetes.sh
+source "$RS_ATTACH_DIR"/kubernetes.sh
 
-servers=$(sudo /usr/local/bin/rsc --rl10 \
-  --xm '.tags' cm15 by_tag tags/by_tag \
-  resource_type=instances tags[]="kube:cluster=$KUBE_CLUSTER" \
-  include_tags_with_prefix="kube:")
+# shellcheck source=attachments/kube-apiserver.manifest.sh
+source "$RS_ATTACH_DIR"/kube-apiserver.manifest.sh
 
-grep -v kube- /etc/hosts > /tmp/hosts
+# shellcheck source=attachments/kube-controller-manager.manifest.sh
+source "$RS_ATTACH_DIR"/kube-controller-manager.manifest.sh
 
-for server in $servers; do
-  ip=$(echo "$server" | grep -oP 'kube:ip=\K[.\w]+')
-  role=$(echo "$server" | grep -oP 'kube:role=\K[.\w]+')
-  node_id=$(echo "$server" | grep -oP 'kube:node_id=\K[.\w]+' || true)
-  echo "$ip" kube-"$role$node_id" >> /tmp/hosts
-done
+# shellcheck source=attachments/kube-scheduler.manifest.sh
+source "$RS_ATTACH_DIR"/kube-scheduler.manifest.sh
 
-sudo cp /tmp/hosts /etc/hosts
-
-if [[ ! -d /opt/kubernetes ]]; then
-  wget -qP /tmp "https://github.com/kubernetes/kubernetes/releases/download/$KUBE_RELEASE_TAG/kubernetes.tar.gz"
-  tar xfz /tmp/kubernetes.tar.gz -C /tmp
-  sudo tar xfz /tmp/kubernetes/server/kubernetes-server-linux-amd64.tar.gz -C /opt
-  grep -Po "(?<=TAG\?=).*" /tmp/kubernetes/cluster/images/etcd/Makefile | sudo tee /opt/kubernetes/ETCD_TAG > /dev/null
-  echo "export PATH=$PATH:/opt/kubernetes/server/bin" | sudo tee /etc/profile.d/kubernetes.sh > /dev/null
-fi
-
-sudo mkdir -p /etc/kubernetes/manifests
+# COMMON CONFIGURATION
+write_hosts_file
+install_kubernetes
 
 if [[ "$KUBE_ROLE" = "master" ]]; then
 
-  install_docker
-
-  ETCD_IMAGE="quay.io/coreos/etcd:v$(cat /opt/kubernetes/ETCD_TAG)"
-  [[ $(sudo docker images -q "$ETCD_IMAGE") ]] || sudo docker pull "$ETCD_IMAGE"
-
-  HYPERKUBE_IMAGE="gcr.io/google_containers/hyperkube:$KUBE_RELEASE_TAG"
-  [[ $(sudo docker images -q "$HYPERKUBE_IMAGE") ]] || sudo docker pull "$HYPERKUBE_IMAGE"
-
-  if [[ $(sudo docker ps -a -q --filter=name=etcd) ]]; then
-    sudo docker start etcd > /dev/null
-  else
-    sudo docker run -d -p "2379:2379" --add-host kube-master:"$MY_IP" \
-      --name etcd "$ETCD_IMAGE" --listen-client-urls "http://0.0.0.0:2379" \
-      --advertise-client-urls "http://kube-master:2379"
-  fi
-
-  set +e
-  until sudo docker exec -i etcd /etcdctl ls / &> /dev/null; do
-    sleep 1
-  done
-  set -e
-
-  cat <<-EOF | sudo docker exec -i etcd /etcdctl set /coreos.com/network/config > /dev/null
-	{
-	  "Network": "18.16.0.0/16",
-	  "SubnetLen": 24,
-	  "Backend": { "Type": "vxlan" }
-	}
-	EOF
-
-  cat <<-EOF | sudo tee /etc/kubernetes/manifests/kube-apiserver.manifest > /dev/null
-	{
-	  "kind": "Pod",
-	  "apiVersion": "v1",
-	  "metadata": {
-	    "name": "kube-apiserver"
-	  },
-	  "spec": {
-	    "hostNetwork": true,
-	    "containers": [
-	      {
-	        "name": "kube-apiserver",
-	        "image": "${HYPERKUBE_IMAGE}",
-	        "command": [
-	          "/hyperkube",
-	          "apiserver",
-	          "--token-auth-file=/dev/null",
-	          "--insecure-bind-address=0.0.0.0",
-	          "--insecure-port=8080",
-	          "--advertise-address=$MY_IP",
-	          "--service-cluster-ip-range=18.17.0.0/16",
-	          "--etcd-servers=http://$MY_IP:2379"
-	        ],
-	        "ports": [
-	          {
-	            "name": "https",
-	            "hostPort": 443,
-	            "containerPort": 443
-	          },
-	          {
-	            "name": "local",
-	            "hostPort": 8080,
-	            "containerPort": 8080
-	          }
-	        ],
-	        "volumeMounts": [
-	          {
-	            "name": "srvkube",
-	            "mountPath": "/srv/kubernetes",
-	            "readOnly": true
-	          },
-	          {
-	            "name": "etcssl",
-	            "mountPath": "/etc/ssl",
-	            "readOnly": true
-	          }
-	        ],
-	        "livenessProbe": {
-	          "httpGet": {
-	            "path": "/healthz",
-	            "port": 8080
-	          },
-	          "initialDelaySeconds": 15,
-	          "timeoutSeconds": 15
-	        }
-	      }
-	    ],
-	    "volumes": [
-	      {
-	        "name": "srvkube",
-	        "hostPath": {
-	          "path": "/srv/kubernetes"
-	        }
-	      },
-	      {
-	        "name": "etcssl",
-	        "hostPath": {
-	          "path": "/etc/ssl"
-	        }
-	      }
-	    ]
-	  }
-	}
-	EOF
-
-  cat <<-EOF | sudo tee /etc/kubernetes/manifests/kube-scheduler.manifest > /dev/null
-	{
-	  "kind": "Pod",
-	  "apiVersion": "v1",
-	  "metadata": {
-	    "name": "kube-scheduler"
-	  },
-	  "spec": {
-	    "hostNetwork": true,
-	    "containers": [
-	      {
-	        "name": "kube-scheduler",
-	        "image": "$HYPERKUBE_IMAGE",
-	        "command": [
-	          "/hyperkube",
-	          "scheduler",
-	          "--master=$MY_IP:8080"
-	        ],
-	        "livenessProbe": {
-	          "httpGet": {
-	            "host" : "127.0.0.1",
-	            "path": "/healthz",
-	            "port": 10251
-	          },
-	          "initialDelaySeconds": 15,
-	          "timeoutSeconds": 15
-	        }
-	      }
-	    ]
-	  }
-	}
-	EOF
-
-  cat <<-EOF | sudo tee /etc/kubernetes/manifests/kube-controller-manager.manifest > /dev/null
-	{
-	  "kind": "Pod",
-	  "apiVersion": "v1",
-	  "metadata": {
-	    "name": "kube-controller-manager"
-	  },
-	  "spec": {
-	    "hostNetwork": true,
-	    "containers": [
-	      {
-	        "name": "kube-controller-manager",
-	        "image": "$HYPERKUBE_IMAGE",
-	        "command": [
-	          "/hyperkube",
-	          "controller-manager",
-	          "--master=$MY_IP:8080"
-	        ],
-	        "volumeMounts": [
-	          {
-	            "name": "srvkube",
-	            "mountPath": "/srv/kubernetes",
-	            "readOnly": true
-	          },
-	          {
-	            "name": "etcssl",
-	            "mountPath": "/etc/ssl",
-	            "readOnly": true
-	          }
-	        ],
-	        "livenessProbe": {
-	          "httpGet": {
-	            "host": "127.0.0.1",
-	            "path": "/healthz",
-	            "port": 10252
-	          },
-	          "initialDelaySeconds": 15,
-	          "timeoutSeconds": 15
-	        }
-	      }
-	    ],
-	    "volumes": [
-	      {
-	        "name": "srvkube",
-	        "hostPath": {
-	          "path": "/srv/kubernetes"
-	        }
-	      },
-	      {
-	        "name": "etcssl",
-	        "hostPath": {
-	          "path": "/etc/ssl"
-	        }
-	      }
-	    ]
-	  }
-	}
-	EOF
+  # MASTER SERVER CONFIGURATION
+  bootstrap_docker
+  pull_docker_images
+  start_etcd
+  write_flannel_config_to_etcd
+  write_apiserver_manifest
+  write_scheduler_manifest
+  write_controller_manifest
 
   sudo /opt/kubernetes/server/bin/kubelet --config=/etc/kubernetes/manifests &> /dev/null &
 
 else
-  if [[ ! -d /opt/flannel ]]; then
-    wget -qP /tmp "https://github.com/coreos/flannel/releases/download/v$FLANNEL_VERSION/flannel-${FLANNEL_VERSION}-linux-amd64.tar.gz"
-    sudo tar xfz /tmp/flannel-"$FLANNEL_VERSION"-linux-amd64.tar.gz -C /opt
-    sudo mv /opt/flannel-"$FLANNEL_VERSION" /opt/flannel
-  fi
 
-  sudo /opt/flannel/flanneld -etcd-endpoints="http://kube-master:2379" --ip-masq=true &> /dev/null &
-
-  until [[ -f /run/flannel/subnet.env ]]; do
-    sleep 1
-  done
-
+  # NODE SERVER CONFIGURATION
+  bootstrap_flannel
   source /run/flannel/subnet.env
+  create_flannel_bridge cbr0
+  prepare_node_docker_config
+  bootstrap_docker
 
-  sudo brctl addbr cbr0
-  sudo ip link set dev cbr0 mtu "$FLANNEL_MTU"
-  sudo ip addr add "$FLANNEL_SUBNET" dev cbr0
-  sudo ip link set dev cbr0 up
-
-  sudo mkdir -p /etc/systemd/system/docker.service.d
-
-  cat <<-"EOF" | sudo tee /etc/systemd/system/docker.service.d/systemd.conf > /dev/null
-	[Service]
-	EnvironmentFile=/run/flannel/subnet.env
-	Environment="DOCKER_NOFILE=1000000"
-	ExecStart=
-	ExecStart=/usr/bin/docker daemon -H fd:// --mtu=${FLANNEL_MTU} --bridge=cbr0 --ip-masq=false --iptables=false
-	EOF
-
-  install_docker
-
-  sudo /opt/kubernetes/server/bin/kubelet --api-servers=http://kube-master:8080 --config=/etc/kubernetes/manifests &> /dev/null &
+  sudo /opt/kubernetes/server/bin/kubelet --api-servers=http://kube-master:8080 &> /dev/null &
   sudo /opt/kubernetes/server/bin/kube-proxy --master=http://kube-master:8080 &> /dev/null &
 fi
