@@ -3,7 +3,7 @@ set -euo pipefail
 IFS=$'\n\t'
 
 # ---
-# RightScript Name: KUBE Launch Cluster
+# RightScript Name: KUBE Bootstrap
 # Inputs:
 #   KUBE_RELEASE_TAG:
 #     Category: Application

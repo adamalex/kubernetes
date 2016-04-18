@@ -34,7 +34,7 @@ RightScripts:
   - RL10_Linux_Setup_Automatic_Upgrade
   - RL10_Linux_Upgrade
   - KUBE_Install_Dashboard
-  - KUBE_Launch_Cluster
+  - KUBE_Bootstrap
 MultiCloudImages:
 - Name: Ubuntu Wily RL10
   Revision: 2

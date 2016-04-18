@@ -1,6 +1,8 @@
 name 'Kubernetes Cluster'
 rs_ca_ver 20131202
-short_description 'Creates a Kubernetes cluster'
+short_description "![logo](https://dl.dropboxusercontent.com/u/2202802/nav_logo.png) 
+
+Creates a Kubernetes cluster"
 
 parameter "node_count" do
   type "number"
@@ -63,17 +65,33 @@ resource 'kube_node', type: 'server_array' do
   } end
 end
 
+output "ssh_url" do
+  label "SSH to master server"
+  category "Kubernetes"
+end
+
+output "dashboard_url" do
+  label "Launch Kubernetes dashboard"
+  category "Kubernetes"
+end
+
 operation 'launch' do
   description 'Launch the application'
   definition 'launch'
+  output_mappings do {
+    $ssh_url => join(["ssh://rightscale@", $master_ip])
+  } end
 end
 
 operation 'enable' do
   description 'Enable the application'
   definition 'enable'
+  output_mappings do {
+    $dashboard_url => join(["http://", $node_ip, ":", $dashboard_port])
+  } end
 end
 
-define launch(@kube_master, @kube_node) return @kube_master, @kube_node do
+define launch(@kube_master, @kube_node) return @kube_master, @kube_node, $master_ip do
   call sys_get_execution_id() retrieve $execution_id
 
   @@deployment.multi_update_inputs(inputs: {
@@ -86,17 +104,26 @@ define launch(@kube_master, @kube_node) return @kube_master, @kube_node do
     provision(@kube_master)
     provision(@kube_node)
   end
+
+  $master_ip = @kube_master.public_ip_addresses[0]
 end
 
-define enable(@kube_master, @kube_node) return @kube_master, @kube_node do
+define enable(@kube_master, @kube_node) return @kube_master, @kube_node, $node_ip, $dashboard_port do
   sub task_name:"Setting up Kubernetes master" do
-    $options = { rightscript: { name: 'KUBE Launch Cluster' } }
+    $options = { rightscript: { name: 'KUBE Bootstrap' } }
     call run_executable(@kube_master, $options)
   end
   sub task_name:"Setting up Kubernetes nodes" do
-    $options = { rightscript: { name: 'KUBE Launch Cluster' } }
+    $options = { rightscript: { name: 'KUBE Bootstrap' } }
     call run_executable(@kube_node.current_instances(), $options)
   end
+  sub task_name:"Installing dashboard" do
+    $options = { rightscript: { name: 'KUBE Install Dashboard' } }
+    call run_executable(@kube_master, $options)
+  end
+
+  $node_ip = @kube_node.current_instances().public_ip_addresses[0]
+  $dashboard_port = tag_value(@kube_master.current_instance(), "kube:dashboard_port")
 end
 
 # Returns all tags for a specified resource. Assumes that only one resource
