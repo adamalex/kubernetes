@@ -1,17 +1,43 @@
 name 'Kubernetes Cluster'
 rs_ca_ver 20131202
-short_description "![logo](https://dl.dropboxusercontent.com/u/2202802/nav_logo.png) 
+short_description "![logo](https://dl.dropboxusercontent.com/u/2202802/nav_logo.png)
 
 Creates a Kubernetes cluster"
 
 parameter "node_count" do
   type "number"
   label "Node Count"
-  category "Cluster"
+  category "Kubernetes"
   description "Number of cluster nodes. Does not include master node."
   default 3
   min_value 1
   max_value 99
+end
+
+parameter "admin_ip" do
+  type "string"
+  label "Admin IP"
+  category "Kubernetes"
+  description "Allowed source IP for cluster administration. This IP address will have full access to the cluster."
+  allowed_pattern "^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$"
+  constraint_description "Please enter a single IP address. Additional IPs can be added after launch."
+end
+
+resource 'kube_sg', type: 'security_group' do
+  name join(['kube_sg_', last(split(@@deployment.href, '/'))])
+  cloud 'Google'
+end
+
+resource 'kube_sg_rule', type: 'security_group_rule' do
+  protocol 'tcp'
+  direction 'ingress'
+  source_type 'cidr_ips'
+  security_group @kube_sg
+  cidr_ips join([$admin_ip, '/32'])
+  protocol_details do {
+    'start_port' => '0',
+    'end_port' => '65535'
+  } end
 end
 
 resource 'kube_master', type: 'server' do
@@ -19,7 +45,7 @@ resource 'kube_master', type: 'server' do
   cloud 'Google'
   datacenter 'us-central1-b'
   instance_type 'n1-standard-1'
-  security_groups 'allow-adam'
+  security_groups @kube_sg
   server_template find('Kubernetes', revision: 0)
   inputs do {
     'ENABLE_AUTO_UPGRADE' => 'text:true',
@@ -36,7 +62,7 @@ resource 'kube_node', type: 'server_array' do
   cloud 'Google'
   datacenter 'us-central1-b'
   instance_type 'n1-standard-1'
-  security_groups 'allow-adam'
+  security_groups @kube_sg
   server_template find('Kubernetes', revision: 0)
   inputs do {
     'ENABLE_AUTO_UPGRADE' => 'text:true',
@@ -75,11 +101,17 @@ output "dashboard_url" do
   category "Kubernetes"
 end
 
+output "admin_ips" do
+  label "Authorized admin IPs"
+  category "Kubernetes"
+end
+
 operation 'launch' do
   description 'Launch the application'
   definition 'launch'
   output_mappings do {
-    $ssh_url => join(["ssh://rightscale@", $master_ip])
+    $ssh_url => join(["ssh://rightscale@", $master_ip]),
+    $admin_ips => $new_admin_ips
   } end
 end
 
@@ -91,7 +123,15 @@ operation 'enable' do
   } end
 end
 
-define launch(@kube_master, @kube_node) return @kube_master, @kube_node, $master_ip do
+operation 'Add Admin IP' do
+  description 'Authorize an additional admin IP for full access to the cluster'
+  definition 'add_admin_ip'
+  output_mappings do {
+    $admin_ips => $new_admin_ips
+  } end
+end
+
+define launch(@kube_master, @kube_node, @kube_sg, @kube_sg_rule, $admin_ip) return @kube_master, @kube_node, @kube_sg, @kube_sg_rule, $master_ip, $new_admin_ips do
   call sys_get_execution_id() retrieve $execution_id
 
   @@deployment.multi_update_inputs(inputs: {
@@ -99,6 +139,11 @@ define launch(@kube_master, @kube_node) return @kube_master, @kube_node, $master
     'KUBE_RELEASE_TAG':'text:v1.3.0-alpha.2',
     'FLANNEL_VERSION':'text:0.5.5'
   })
+
+  provision(@kube_sg)
+  provision(@kube_sg_rule)
+
+  $new_admin_ips = $admin_ip
 
   concurrent return @kube_master, @kube_node do
     provision(@kube_master)
@@ -124,6 +169,34 @@ define enable(@kube_master, @kube_node) return @kube_master, @kube_node, $node_i
 
   $node_ip = @kube_node.current_instances().public_ip_addresses[0]
   $dashboard_port = tag_value(@kube_master.current_instance(), "kube:dashboard_port")
+end
+
+define add_admin_ip(@kube_sg, $admin_ip) return $new_admin_ips do
+  @new_rule = {
+    "namespace": "rs",
+    "type": "security_group_rule",
+    "fields": {
+      "protocol": "tcp",
+      "direction": "ingress",
+      "source_type": "cidr_ips",
+      "security_group_href": @kube_sg,
+      "cidr_ips": join([$admin_ip, '/32']),
+      "protocol_details": {
+        "start_port": "0",
+        "end_port": "65535"
+      }
+    }
+  }
+
+  provision(@new_rule)
+
+  $sg_cidr_ips = @kube_sg.security_group_rules().cidr_ips[]
+
+  $sg_ips = map $sg_cidr_ip in $sg_cidr_ips return $sg_ip do
+    $sg_ip = first(split($sg_cidr_ip, "/"))
+  end
+
+  $new_admin_ips = join($sg_ips, ", ")
 end
 
 # Returns all tags for a specified resource. Assumes that only one resource
