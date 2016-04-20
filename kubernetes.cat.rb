@@ -4,11 +4,59 @@ short_description "![logo](https://dl.dropboxusercontent.com/u/2202802/nav_logo.
 
 Creates a Kubernetes cluster"
 
+long_description "### Description
+
+####Kubernetes
+
+Kubernetes is an open source cluster manager, a software package that manages a cluster of servers as a scalable pool of resources for deploying Docker containers.
+
+####This CloudApp
+
+RightScale's Self-Service integration for Kubernetes makes it easy to launch and scale a dynamically-sized cluster, manage access, and deploy workloads across the pool of servers.
+
+---
+
+### Parameters
+
+####Node Count
+
+Enter the number of nodes for the cluster. This is in addition to the master server, which is always created.
+
+####Admin IP
+
+Enter your public IP address as visible to the public Internet. This will be used to create a rule in the cluster's security group to allow you full access to the cluster for administration. You can visit [http://ip4.me](http://ip4.me) to verify your public IP.
+
+---
+
+### Outputs
+
+####Launch Kubernetes dashboard
+
+Click this link to launch the Kubernetes dashboard. Documentation for using this dashboard to deploy and manage applications can be found at [http://kubernetes.io/docs/user-guide/ui](http://kubernetes.io/docs/user-guide/ui)
+
+####SSH to master server
+
+This output displays SSH login information in the form ssh://*username*@*ip_address*. Use your usual SSH connection method to initiate a SSH session on the master server. [http://kubernetes.io/docs](http://kubernetes.io/docs) contains documentation on using and administering Kubernetes from the command prompt.
+
+####Authorized admin IPs
+
+Contains a list of IP addresses that have been authorized for full administrative access to the cluster.
+
+---
+
+### Actions
+
+####Add Admin IP
+
+This action can be used to authorize an additional IP for full administrative access to the cluster.
+
+---"
+
 parameter "node_count" do
   type "number"
   label "Node Count"
   category "Kubernetes"
-  description "Number of cluster nodes. Does not include master node."
+  description "Number of cluster nodes. Does not include master server."
   default 3
   min_value 1
   max_value 99
