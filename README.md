@@ -24,4 +24,4 @@
 
 * [Upload](http://docs.rightscale.com/ss/guides/ss_testing_CATs.html) and [Publish](http://docs.rightscale.com/ss/guides/ss_publishing_CATs.html) the CAT in Self-Service
 
-* Instructions for using the CAT will be shown when pressing the Details button from the CloudApp's preview on the Catalog screen.
+* Instructions for using the CAT will be shown when pressing the Details button from the CloudApp's preview on the Catalog screen, or can be viewed at the top of [kubernetes.cat.rb](https://github.com/adamalex/kubernetes/blob/master/kubernetes.cat.rb)
