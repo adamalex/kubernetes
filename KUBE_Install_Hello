@@ -3,14 +3,8 @@ set -euo pipefail
 IFS=$'\n\t'
 
 # ---
-# RightScript Name: KUBE Install Dashboard
-# Inputs:
-#   MY_IP:
-#     Category: RightScale
-#     Input Type: single
-#     Required: true
-#     Advanced: true
-#     Default: env:PRIVATE_IP
+# RightScript Name: KUBE Install Hello
+# Inputs: {}
 # Attachments:
 # - tagging.sh
 # ...
@@ -27,49 +21,45 @@ items:
   apiVersion: v1
   metadata:
     labels:
-      app: kubernetes-dashboard
-      version: v1.0.1
-    name: kubernetes-dashboard
-    namespace: kube-system
+      app: hello-world
+    name: hello-world
+    namespace: default
   spec:
-    replicas: 1
+    replicas: 3
     selector:
-      app: kubernetes-dashboard
+      app: hello-world
     template:
       metadata:
         labels:
-          app: kubernetes-dashboard
+          app: hello-world
       spec:
         containers:
-        - name: kubernetes-dashboard
-          image: gcr.io/google_containers/kubernetes-dashboard-amd64:v1.0.1
+        - name: hello-world
+          image: tutum/hello-world:latest
           imagePullPolicy: Always
           ports:
-          - containerPort: 9090
+          - containerPort: 80
             protocol: TCP
-          args:
-            - --apiserver-host=http://$MY_IP:8080
           livenessProbe:
             httpGet:
               path: /
-              port: 9090
+              port: 80
             initialDelaySeconds: 30
             timeoutSeconds: 30
 - kind: Service
   apiVersion: v1
   metadata:
     labels:
-      app: kubernetes-dashboard
-      kubernetes.io/cluster-service: "true"
-    name: kubernetes-dashboard
-    namespace: kube-system
+      app: hello-world
+    name: hello-world
+    namespace: default
   spec:
     type: NodePort
     ports:
     - port: 80
-      targetPort: 9090
+      targetPort: 80
     selector:
-      app: kubernetes-dashboard
+      app: hello-world
 EOF
 set -e
 
@@ -77,4 +67,4 @@ output=$(echo "$manifest" | /opt/kubernetes/server/bin/kubectl create -f -)
 echo "$output"
 
 port=$(echo "$output" | grep -Po '\(tcp:\K\d+')
-tag_and_verify "kube:dashboard_port=$port"
+tag_and_verify "kube:hello_port=$port"

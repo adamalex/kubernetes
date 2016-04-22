@@ -6,11 +6,11 @@ Creates a Kubernetes cluster"
 
 long_description "### Description
 
-####Kubernetes
+#### Kubernetes
 
 Kubernetes is an open source cluster manager, a software package that manages a cluster of servers as a scalable pool of resources for deploying Docker containers.
 
-####This CloudApp
+#### This CloudApp
 
 RightScale's Self-Service integration for Kubernetes makes it easy to launch and scale a dynamically-sized cluster, manage access, and deploy workloads across the pool of servers.
 
@@ -18,11 +18,11 @@ RightScale's Self-Service integration for Kubernetes makes it easy to launch and
 
 ### Parameters
 
-####Node Count
+#### Node Count
 
 Enter the number of nodes for the cluster. This is in addition to the master server, which is always created.
 
-####Admin IP
+#### Admin IP
 
 Enter your public IP address as visible to the public Internet. This will be used to create a rule in the cluster's security group to allow you full access to the cluster for administration. You can visit [http://ip4.me](http://ip4.me) to verify your public IP.
 
@@ -30,15 +30,19 @@ Enter your public IP address as visible to the public Internet. This will be use
 
 ### Outputs
 
-####Launch Kubernetes dashboard
+#### Launch Kubernetes dashboard
 
 Click this link to launch the Kubernetes dashboard. Documentation for using this dashboard to deploy and manage applications can be found at [http://kubernetes.io/docs/user-guide/ui](http://kubernetes.io/docs/user-guide/ui)
 
-####SSH to master server
+#### View Hello app
+
+Click this link to view the Hello World web app that has been deployed to the cluster
+
+#### SSH to master server
 
 This output displays SSH login information in the form ssh://*username*@*ip_address*. Use your usual SSH connection method to initiate a SSH session on the master server. [http://kubernetes.io/docs](http://kubernetes.io/docs) contains documentation on using and administering Kubernetes from the command prompt.
 
-####Authorized admin IPs
+#### Authorized admin IPs
 
 Contains a list of IP addresses that have been authorized for full administrative access to the cluster.
 
@@ -46,9 +50,13 @@ Contains a list of IP addresses that have been authorized for full administrativ
 
 ### Actions
 
-####Add Admin IP
+#### Add Admin IP
 
 This action can be used to authorize an additional IP for full administrative access to the cluster.
+
+#### Install Hello app
+
+This action will install a basic Hello World web app onto the cluster
 
 ---"
 
@@ -154,6 +162,11 @@ output "admin_ips" do
   category "Kubernetes"
 end
 
+output "hello_url" do
+  label "View Hello app"
+  category "Kubernetes"
+end
+
 operation 'launch' do
   description 'Launch the application'
   definition 'launch'
@@ -179,6 +192,14 @@ operation 'Add Admin IP' do
   } end
 end
 
+operation 'Install Hello app' do
+  description 'Install a basic Hello World web app onto the cluster'
+  definition 'install_hello'
+  output_mappings do {
+    $hello_url => join(["http://", $node_ip, ":", $hello_port])
+  } end
+end
+
 define launch(@kube_master, @kube_node, @kube_sg, @kube_sg_rule, $admin_ip) return @kube_master, @kube_node, @kube_sg, @kube_sg_rule, $master_ip, $new_admin_ips do
   call sys_get_execution_id() retrieve $execution_id
 
@@ -189,15 +210,14 @@ define launch(@kube_master, @kube_node, @kube_sg, @kube_sg_rule, $admin_ip) retu
   })
 
   provision(@kube_sg)
-  provision(@kube_sg_rule)
 
-  $new_admin_ips = $admin_ip
-
-  concurrent return @kube_master, @kube_node do
+  concurrent return @kube_sg_rule, @kube_master, @kube_node do
+    provision(@kube_sg_rule)
     provision(@kube_master)
     provision(@kube_node)
   end
 
+  $new_admin_ips = $admin_ip
   $master_ip = @kube_master.public_ip_addresses[0]
 end
 
@@ -217,6 +237,16 @@ define enable(@kube_master, @kube_node) return @kube_master, @kube_node, $node_i
 
   $node_ip = @kube_node.current_instances().public_ip_addresses[0]
   $dashboard_port = tag_value(@kube_master.current_instance(), "kube:dashboard_port")
+end
+
+define install_hello(@kube_master, @kube_node) return @kube_master, @kube_node, $node_ip, $hello_port do
+  sub task_name:"Installing Hello" do
+    $options = { rightscript: { name: 'KUBE Install Hello' } }
+    call run_executable(@kube_master, $options)
+  end
+
+  $node_ip = @kube_node.current_instances().public_ip_addresses[0]
+  $hello_port = tag_value(@kube_master.current_instance(), "kube:hello_port")
 end
 
 define add_admin_ip(@kube_sg, $admin_ip) return $new_admin_ips do
