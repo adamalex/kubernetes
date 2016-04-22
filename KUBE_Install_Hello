@@ -12,12 +12,12 @@ IFS=$'\n\t'
 # shellcheck source=attachments/tagging.sh
 source "$RS_ATTACH_DIR"/tagging.sh
 
-if kubectl get svc hello-world; then
-  kubectl delete svc hello-world
+if /opt/kubernetes/server/bin/kubectl get svc hello-world; then
+  /opt/kubernetes/server/bin/kubectl delete svc hello-world
 fi
 
-if kubectl get rc hello-world; then
-  kubectl delete rc hello-world
+if /opt/kubernetes/server/bin/kubectl get rc hello-world; then
+  /opt/kubernetes/server/bin/kubectl delete rc hello-world
 fi
 
 set +e
