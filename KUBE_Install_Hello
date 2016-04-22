@@ -12,6 +12,14 @@ IFS=$'\n\t'
 # shellcheck source=attachments/tagging.sh
 source "$RS_ATTACH_DIR"/tagging.sh
 
+if kubectl get svc hello-world; then
+  kubectl delete svc hello-world
+fi
+
+if kubectl get rc hello-world; then
+  kubectl delete rc hello-world
+fi
+
 set +e
 read -r -d '' manifest << EOF
 kind: List
