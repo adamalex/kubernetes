@@ -11,20 +11,20 @@ bootstrap_docker() {
 }
 
 write_hosts_file() {
-  servers=$(sudo /usr/local/bin/rsc --rl10 \
-    --xm '.tags' cm15 by_tag tags/by_tag \
-    resource_type=instances tags[]="kube:cluster=$KUBE_CLUSTER" \
-    include_tags_with_prefix="kube:")
+  while true; do
+    master=$(sudo /usr/local/bin/rsc --rl10 \
+      --xm '.tags' cm15 by_tag tags/by_tag match_all=true \
+      resource_type=instances tags[]="kube:cluster=$KUBE_CLUSTER" \
+      tags[]="kube:role=master" include_tags_with_prefix="kube:")
 
-  grep -v kube- /etc/hosts > /tmp/hosts
+    [[ -n $master ]] && break
 
-  for server in $servers; do
-    ip=$(echo "$server" | grep -oP 'kube:ip=\K[.\w]+')
-    role=$(echo "$server" | grep -oP 'kube:role=\K[.\w]+')
-    node_id=$(echo "$server" | grep -oP 'kube:node_id=\K[.\w]+' || true)
-    echo "$ip" kube-"$role$node_id" >> /tmp/hosts
+    sleep 1
   done
 
+  grep -v kube- /etc/hosts > /tmp/hosts
+  ip=$(echo "$master" | grep -oP 'kube:ip=\K[.\w]+')
+  echo "$ip" kube-master >> /tmp/hosts
   sudo cp /tmp/hosts /etc/hosts
 }
 

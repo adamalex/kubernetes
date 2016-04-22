@@ -222,28 +222,16 @@ define launch(@kube_master, @kube_node, @kube_sg, @kube_sg_rule, $admin_ip) retu
 end
 
 define enable(@kube_master, @kube_node) return @kube_master, @kube_node, $node_ip, $dashboard_port do
-  sub task_name:"Setting up Kubernetes master" do
-    $options = { rightscript: { name: 'KUBE Bootstrap' } }
-    call run_executable(@kube_master, $options)
-  end
-  sub task_name:"Setting up Kubernetes nodes" do
-    $options = { rightscript: { name: 'KUBE Bootstrap' } }
-    call run_executable(@kube_node.current_instances(), $options)
-  end
-  sub task_name:"Installing dashboard" do
-    $options = { rightscript: { name: 'KUBE Install Dashboard' } }
-    call run_executable(@kube_master, $options)
-  end
+  $options = { rightscript: { name: 'KUBE Install Dashboard' } }
+  call run_executable(@kube_master, $options)
 
   $node_ip = @kube_node.current_instances().public_ip_addresses[0]
   $dashboard_port = tag_value(@kube_master.current_instance(), "kube:dashboard_port")
 end
 
 define install_hello(@kube_master, @kube_node) return @kube_master, @kube_node, $node_ip, $hello_port do
-  sub task_name:"Installing Hello" do
-    $options = { rightscript: { name: 'KUBE Install Hello' } }
-    call run_executable(@kube_master, $options)
-  end
+  $options = { rightscript: { name: 'KUBE Install Hello' } }
+  call run_executable(@kube_master, $options)
 
   $node_ip = @kube_node.current_instances().public_ip_addresses[0]
   $hello_port = tag_value(@kube_master.current_instance(), "kube:hello_port")

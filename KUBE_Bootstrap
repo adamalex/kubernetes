@@ -68,8 +68,8 @@ source "$RS_ATTACH_DIR"/kube-controller-manager.manifest.sh
 source "$RS_ATTACH_DIR"/kube-scheduler.manifest.sh
 
 # COMMON CONFIGURATION
-write_hosts_file
 install_kubernetes
+write_hosts_file
 
 if [[ "$KUBE_ROLE" = "master" ]]; then
 

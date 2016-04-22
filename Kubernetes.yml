@@ -28,6 +28,7 @@ RightScripts:
   - RL10_Linux_Enable_Monitoring
   - RL10_Linux_Setup_Automatic_Upgrade
   - KUBE_Set_Tags
+  - KUBE_Bootstrap
   Decommission:
   - RL10_Linux_Shutdown_Reason
   Operational:
@@ -35,7 +36,6 @@ RightScripts:
   - RL10_Linux_Upgrade
   - KUBE_Install_Dashboard
   - KUBE_Install_Hello
-  - KUBE_Bootstrap
 MultiCloudImages:
 - Name: Ubuntu Wily RL10
   Revision: 2
