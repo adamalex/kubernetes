@@ -54,6 +54,10 @@ Contains a list of IP addresses that have been authorized for full administrativ
 
 This action can be used to authorize an additional IP for full administrative access to the cluster.
 
+#### Resize Cluster
+
+This action will update the target number of cluster nodes. Although the action completes right away, please wait a few minutes for the requested changes to happen in the background.
+
 #### Install Hello app
 
 This action will install a basic Hello World web app onto the cluster
@@ -192,6 +196,11 @@ operation 'Add Admin IP' do
   } end
 end
 
+operation 'Resize Cluster' do
+  description 'Update the target number of cluster nodes'
+  definition 'resize_cluster'
+end
+
 operation 'Install Hello app' do
   description 'Install a basic Hello World web app onto the cluster'
   definition 'install_hello'
@@ -227,6 +236,17 @@ define enable(@kube_master, @kube_node) return @kube_master, @kube_node, $node_i
 
   $node_ip = @kube_node.current_instances().public_ip_addresses[0]
   $dashboard_port = tag_value(@kube_master.current_instance(), "kube:dashboard_port")
+end
+
+define resize_cluster(@kube_node, $node_count) return @kube_node, $node_count do
+  @kube_node.update(server_array: {
+    "elasticity_params": {
+      "bounds": {
+        "min_count": $node_count,
+        "max_count": $node_count
+      }
+    }
+  })
 end
 
 define install_hello(@kube_master, @kube_node) return @kube_master, @kube_node, $node_ip, $hello_port do
