@@ -22,6 +22,10 @@
 
 #### Self-Service CAT
 
+* Locate the `mapping "map_cloud"` section near the top of `kubernetes.cat` and customize for your preferences.
+
+* IMPORTANT: the `account_id` field must be filled in for any cloud you intend to use with this CAT. To locate these values, navigate to Settings -> Account Settings -> Clouds from within RightScale. For AWS, use the value shown for `Cloud Account Number`, and for Google, use the `Project` value.
+
 * [Upload](http://docs.rightscale.com/ss/guides/ss_testing_CATs.html) and [Publish](http://docs.rightscale.com/ss/guides/ss_publishing_CATs.html) the CAT in Self-Service
 
 * Instructions for using the CAT will be shown when pressing the Details button from the CloudApp's preview on the Catalog screen, or can be viewed at the top of [kubernetes.cat.rb](https://github.com/adamalex/kubernetes/blob/master/kubernetes.cat.rb)

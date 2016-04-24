@@ -22,6 +22,10 @@ RightScale's Self-Service integration for Kubernetes makes it easy to launch and
 
 Enter the number of nodes for the cluster. This is in addition to the master server, which is always created.
 
+#### Cloud
+
+Choose a target cloud for this cluster.
+
 #### Admin IP
 
 Enter your public IP address as visible to the public Internet. This will be used to create a rule in the cluster's security group to allow you full access to the cluster for administration. You can visit [http://ip4.me](http://ip4.me) to verify your public IP.
@@ -64,20 +68,42 @@ This action will install a basic Hello World web app onto the cluster
 
 ---"
 
+mapping "map_cloud" do {
+  "AWS" => {
+    "cloud" => "EC2 us-east-1",
+    "datacenter" => "us-east-1d",
+    "account_id" => "",
+    "instance_type" => "m3.medium" },
+  "Google" => {
+    "cloud" => "Google",
+    "datacenter" => "us-central1-b",
+    "account_id" => "",
+    "instance_type" => "n1-standard-1" } }
+end
+
 parameter "node_count" do
   type "number"
   label "Node Count"
-  category "Kubernetes"
+  category "Application"
   description "Number of cluster nodes. Does not include master server."
   default 3
   min_value 1
   max_value 99
 end
 
+parameter "cloud" do
+  type "string"
+  label "Cloud"
+  category "Application"
+  description "Target cloud for this cluster."
+  allowed_values "AWS", "Google"
+  default "AWS"
+end
+
 parameter "admin_ip" do
   type "string"
   label "Admin IP"
-  category "Kubernetes"
+  category "Application"
   description "Allowed source IP for cluster administration. This IP address will have full access to the cluster."
   allowed_pattern "^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$"
   constraint_description "Please enter a single IP address. Additional IPs can be added after launch."
@@ -85,10 +111,34 @@ end
 
 resource 'kube_sg', type: 'security_group' do
   name join(['kube_sg_', last(split(@@deployment.href, '/'))])
-  cloud 'Google'
+  cloud map($map_cloud, $cloud, "cloud")
 end
 
-resource 'kube_sg_rule', type: 'security_group_rule' do
+resource 'kube_sg_rule_int_tcp', type: 'security_group_rule' do
+  protocol 'tcp'
+  direction 'ingress'
+  source_type 'group'
+  security_group @kube_sg
+  group_owner map($map_cloud, $cloud, "account_id")
+  protocol_details do {
+    'start_port' => '0',
+    'end_port' => '65535'
+  } end
+end
+
+resource 'kube_sg_rule_int_udp', type: 'security_group_rule' do
+  protocol 'udp'
+  direction 'ingress'
+  source_type 'group'
+  security_group @kube_sg
+  group_owner map($map_cloud, $cloud, "account_id")
+  protocol_details do {
+    'start_port' => '0',
+    'end_port' => '65535'
+  } end
+end
+
+resource 'kube_sg_rule_admin', type: 'security_group_rule' do
   protocol 'tcp'
   direction 'ingress'
   source_type 'cidr_ips'
@@ -102,9 +152,9 @@ end
 
 resource 'kube_master', type: 'server' do
   name 'kube-master'
-  cloud 'Google'
-  datacenter 'us-central1-b'
-  instance_type 'n1-standard-1'
+  cloud map($map_cloud, $cloud, "cloud")
+  datacenter map($map_cloud, $cloud, "datacenter")
+  instance_type map($map_cloud, $cloud, "instance_type")
   security_groups @kube_sg
   server_template find('Kubernetes', revision: 0)
   inputs do {
@@ -119,9 +169,9 @@ end
 
 resource 'kube_node', type: 'server_array' do
   name 'kube-node'
-  cloud 'Google'
-  datacenter 'us-central1-b'
-  instance_type 'n1-standard-1'
+  cloud map($map_cloud, $cloud, "cloud")
+  datacenter map($map_cloud, $cloud, "datacenter")
+  instance_type map($map_cloud, $cloud, "instance_type")
   security_groups @kube_sg
   server_template find('Kubernetes', revision: 0)
   inputs do {
@@ -209,7 +259,8 @@ operation 'Install Hello app' do
   } end
 end
 
-define launch(@kube_master, @kube_node, @kube_sg, @kube_sg_rule, $admin_ip) return @kube_master, @kube_node, @kube_sg, @kube_sg_rule, $master_ip, $new_admin_ips do
+define launch(@kube_master, @kube_node, @kube_sg, @kube_sg_rule_admin, @kube_sg_rule_int_tcp, @kube_sg_rule_int_udp, $admin_ip, $cloud) return @kube_master, @kube_node, @kube_sg, @kube_sg_rule_admin, @kube_sg_rule_int_tcp, @kube_sg_rule_int_udp, $master_ip, $new_admin_ips do
+
   call sys_get_execution_id() retrieve $execution_id
 
   @@deployment.multi_update_inputs(inputs: {
@@ -220,8 +271,14 @@ define launch(@kube_master, @kube_node, @kube_sg, @kube_sg_rule, $admin_ip) retu
 
   provision(@kube_sg)
 
-  concurrent return @kube_sg_rule, @kube_master, @kube_node do
-    provision(@kube_sg_rule)
+  call security_group_name($cloud, @kube_sg) retrieve $security_group_name
+  call rename_field(@kube_sg_rule_int_tcp, "group_name", $security_group_name) retrieve @kube_sg_rule_int_tcp
+  call rename_field(@kube_sg_rule_int_udp, "group_name", $security_group_name) retrieve @kube_sg_rule_int_udp
+
+  concurrent return @kube_sg_rule_admin, @kube_sg_rule_int_tcp, @kube_sg_rule_int_udp, @kube_master, @kube_node do
+    provision(@kube_sg_rule_int_tcp)
+    provision(@kube_sg_rule_int_udp)
+    provision(@kube_sg_rule_admin)
     provision(@kube_master)
     provision(@kube_node)
   end
@@ -279,10 +336,28 @@ define add_admin_ip(@kube_sg, $admin_ip) return $new_admin_ips do
   $sg_cidr_ips = @kube_sg.security_group_rules().cidr_ips[]
 
   $sg_ips = map $sg_cidr_ip in $sg_cidr_ips return $sg_ip do
-    $sg_ip = first(split($sg_cidr_ip, "/"))
+    if $sg_cidr_ip
+      $sg_ip = first(split($sg_cidr_ip, "/"))
+    else
+      $sg_ip = null
+    end
   end
 
   $new_admin_ips = join($sg_ips, ", ")
+end
+
+define security_group_name($cloud, @group) return $name do
+  if $cloud == "Google"
+    $name = @group.resource_uid
+  else
+    $name = @group.name
+  end
+end
+
+define rename_field(@declaration, $field_name, $field_value) return @declaration do
+  $json = to_object(@declaration)
+  $json["fields"][$field_name] = $field_value
+  @declaration = $json
 end
 
 # Returns all tags for a specified resource. Assumes that only one resource
