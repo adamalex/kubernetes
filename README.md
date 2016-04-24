@@ -16,9 +16,9 @@
 
 * Rename the MCI to `Ubuntu Wily RL10`
 
-* Replace the MCI's GCE image with the latest variation of `ubuntu-1510-wily-v20160405`
+* If you're planning to use GCE, replace the MCI's GCE image with the latest variation of `ubuntu-1510-wily-v20160405`
 
-* Commit the MCI until you have a version `2`
+* If you're planning to use AWS, replace the MCI's AWS image(s) in the regions you use with the latest variation of `ubuntu/images/hvm/ubuntu-wily-15.10-amd64-server-20160315`
 
 #### Self-Service CAT
 

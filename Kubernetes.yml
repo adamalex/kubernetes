@@ -38,5 +38,5 @@ RightScripts:
   - KUBE_Install_Hello
 MultiCloudImages:
 - Name: Ubuntu Wily RL10
-  Revision: 2
+  Revision: 0
 Alerts: []
