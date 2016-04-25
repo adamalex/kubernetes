@@ -82,7 +82,7 @@ if [[ "$KUBE_ROLE" = "master" ]]; then
   write_scheduler_manifest
   write_controller_manifest
 
-  sudo /opt/kubernetes/server/bin/kubelet --config=/etc/kubernetes/manifests &> /dev/null &
+  sudo /opt/kubernetes/server/bin/kubelet --config=/etc/kubernetes/manifests --allow-privileged=true &> /dev/null &
 
 else
 
@@ -93,6 +93,6 @@ else
   prepare_node_docker_config
   bootstrap_docker
 
-  sudo /opt/kubernetes/server/bin/kubelet --api-servers=http://kube-master:8080 &> /dev/null &
+  sudo /opt/kubernetes/server/bin/kubelet --api-servers=http://kube-master:8080 --allow-privileged=true &> /dev/null &
   sudo /opt/kubernetes/server/bin/kube-proxy --master=http://kube-master:8080 &> /dev/null &
 fi

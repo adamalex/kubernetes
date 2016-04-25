@@ -17,6 +17,7 @@ write_apiserver_manifest() {
 	        "command": [
 	          "/hyperkube",
 	          "apiserver",
+	          "--allow-privileged=true",
 	          "--token-auth-file=/dev/null",
 	          "--insecure-bind-address=0.0.0.0",
 	          "--insecure-port=8080",
