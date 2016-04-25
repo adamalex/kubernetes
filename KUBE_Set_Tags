@@ -38,9 +38,3 @@ source "$RS_ATTACH_DIR"/tagging.sh
 tag_and_verify "kube:ip=$MY_IP"
 tag_and_verify "kube:role=$KUBE_ROLE"
 tag_and_verify "kube:cluster=$KUBE_CLUSTER"
-
-# Uses $SERVER_NAME
-
-if [ "$KUBE_ROLE" = "node" ]; then
-  tag_and_verify "kube:node_id=${SERVER_NAME/*#/}"
-fi
