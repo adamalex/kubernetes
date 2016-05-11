@@ -5,15 +5,22 @@ Description: "Base ServerTemplate for RightLink10. RightLink10 is a new agent to
   [http://docs.rightscale.com/rl/about.html](http://docs.rightscale.com/rl/about.html)
   for details.\r\n\r\nThis base ST includes a few boot scripts that:\r\n\r\n* Wait
   for an EIP to settle (AWS only)\r\n* Sets up a valid hostname\r\n* Enables RightScale
-  OS monitoring\r\n* Sets up RightLink10 automatic upgrades\r\n\r\nIt has an operational
-  script to force a RightLink10 upgrade. And we also provide a decommission script
-  that provides the reason for shutdown. The source of the scripts on this ServerTemplate
-  is available at [https://github.com/rightscale/rightlink_scripts/tree/10.3.0](https://github.com/rightscale/rightlink_scripts/tree/10.3.0).\r\n\r\n__Tested
+  OS monitoring\r\n* Sets up RightLink10 automatic upgrades\r\n* Enables Docker support\r\n\r\nIt
+  has an operational script to force a RightLink10 upgrade. And we also provide a
+  decommission script that provides the reason for shutdown. The source of the scripts
+  on this ServerTemplate is available at [https://github.com/rightscale/rightlink_scripts/tree/10.4.0](https://github.com/rightscale/rightlink_scripts/tree/10.4.0).\r\n\r\n__Tested
   Linux distros:__\r\n\r\n* Ubuntu 14.04 x86_64\r\n* Ubuntu 12.04 x86_64\r\n* CentOS
   7 x86_64\r\n* CentOS 6 x86_64\r\n* CoreOS Stable x86_64\r\n\r\n__Tested compute
   clouds:__\r\n\r\n* AWS\r\n* Azure\r\n* Softlayer\r\n* Google Compute Engine\r\n*
   Openstack\r\n* RCA-V (VMware)\r\n\r\n__Tested use cases:__\r\n\r\n* Install-At-Boot\r\n*
-  Enable-Running\r\n* Custom-Image"
+  Enable-Running\r\n* Custom-Image\r\n\r\nThe images included are stock/official images
+  made available by the cloud provider or the OS developer. Therefore they can be
+  deregistered and made unavailable at any time at the discretion of the owner. It
+  is advised that you create your own MultiCloud Image with your own custom image
+  for Linux or Windows. Please refer to [http://docs.rightscale.com/rl10/reference/rl10_os_compatibility.html#rightscale-tested-images](http://docs.rightscale.com/rl10/reference/rl10_os_compatibility.html#rightscale-tested-images)\r\n\r\nSome
+  of the images included may require you to accept terms of service before using the
+  image. Please follow the instructions provided in the error message during launch
+  or refer to the OS compatibility link above."
 Inputs:
   COLLECTD_SERVER: env:RS_TSS
   FLANNEL_VERSION: blank
@@ -21,6 +28,7 @@ Inputs:
   KUBE_RELEASE_TAG: blank
   KUBE_ROLE: blank
   RS_INSTANCE_UUID: env:RS_INSTANCE_UUID
+  RIGHTLINK_DOCKER: text:all
 RightScripts:
   Boot:
   - RL10_Linux_Wait_For_EIP
@@ -29,11 +37,13 @@ RightScripts:
   - RL10_Linux_Setup_Automatic_Upgrade
   - KUBE_Set_Tags
   - KUBE_Bootstrap
+  - RL10_Linux_Enable_Docker_Support_Beta
   Decommission:
   - RL10_Linux_Shutdown_Reason
   Operational:
   - RL10_Linux_Setup_Automatic_Upgrade
   - RL10_Linux_Upgrade
+  - RL10_Linux_Enable_Docker_Support_Beta
   - KUBE_Install_Dashboard
   - KUBE_Install_Hello
 MultiCloudImages:
