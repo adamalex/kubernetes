@@ -23,10 +23,6 @@ Description: "Base ServerTemplate for RightLink10. RightLink10 is a new agent to
   or refer to the OS compatibility link above."
 Inputs:
   COLLECTD_SERVER: env:RS_TSS
-  FLANNEL_VERSION: blank
-  KUBE_CLUSTER: blank
-  KUBE_RELEASE_TAG: blank
-  KUBE_ROLE: blank
   RS_INSTANCE_UUID: env:RS_INSTANCE_UUID
   RIGHTLINK_DOCKER: text:all
 RightScripts:

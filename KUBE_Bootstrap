@@ -12,7 +12,8 @@ IFS=$'\n\t'
 #     Required: true
 #     Advanced: false
 #     Possible Values:
-#     - text:v1.3.0-alpha.2
+#     - text:v1.3.0-alpha.3
+#     Default: text:v1.3.0-alpha.3
 #   FLANNEL_VERSION:
 #     Category: Application
 #     Description: Version number as found at https://github.com/coreos/flannel/releases
@@ -22,6 +23,7 @@ IFS=$'\n\t'
 #     Advanced: false
 #     Possible Values:
 #     - text:0.5.5
+#     Default: text:0.5.5
 #   KUBE_CLUSTER:
 #     Category: Application
 #     Description: Cluster name for the cluster. Must be unique per account.
@@ -82,6 +84,8 @@ if [[ "$KUBE_ROLE" = "master" ]]; then
   write_scheduler_manifest
   write_controller_manifest
 
+  echo "Starting Kubernetes services..."
+
   sudo /opt/kubernetes/server/bin/kubelet --config=/etc/kubernetes/manifests --allow-privileged=true &> /dev/null &
 
 else
@@ -92,6 +96,8 @@ else
   create_flannel_bridge cbr0
   prepare_node_docker_config
   bootstrap_docker
+
+  echo "Starting Kubernetes services..."
 
   sudo /opt/kubernetes/server/bin/kubelet --api-servers=http://kube-master:8080 --allow-privileged=true &> /dev/null &
   sudo /opt/kubernetes/server/bin/kube-proxy --master=http://kube-master:8080 &> /dev/null &

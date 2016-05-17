@@ -264,9 +264,7 @@ define launch(@kube_master, @kube_node, @kube_sg, @kube_sg_rule_admin, @kube_sg_
   call sys_get_execution_id() retrieve $execution_id
 
   @@deployment.multi_update_inputs(inputs: {
-    'KUBE_CLUSTER':'text:' + $execution_id,
-    'KUBE_RELEASE_TAG':'text:v1.3.0-alpha.2',
-    'FLANNEL_VERSION':'text:0.5.5'
+    'KUBE_CLUSTER':'text:' + $execution_id
   })
 
   provision(@kube_sg)
@@ -275,10 +273,11 @@ define launch(@kube_master, @kube_node, @kube_sg, @kube_sg_rule_admin, @kube_sg_
   call rename_field(@kube_sg_rule_int_tcp, "group_name", $security_group_name) retrieve @kube_sg_rule_int_tcp
   call rename_field(@kube_sg_rule_int_udp, "group_name", $security_group_name) retrieve @kube_sg_rule_int_udp
 
-  concurrent return @kube_sg_rule_admin, @kube_sg_rule_int_tcp, @kube_sg_rule_int_udp, @kube_master, @kube_node do
-    provision(@kube_sg_rule_int_tcp)
-    provision(@kube_sg_rule_int_udp)
-    provision(@kube_sg_rule_admin)
+  provision(@kube_sg_rule_int_tcp)
+  provision(@kube_sg_rule_int_udp)
+  provision(@kube_sg_rule_admin)
+
+  concurrent return @kube_master, @kube_node do
     provision(@kube_master)
     provision(@kube_node)
   end
